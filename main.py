@@ -18,7 +18,7 @@ class Item:
         return self.value in ['+', '-', '*', '/']
 
     def is_keyword(self):
-        return self.value in ['print', 'dup', 'drop', 'swap', 'over', 'rot', 'store']
+        return self.value in ['print', 'dup', 'drop', 'swap', 'over', 'store']
 
     def get_value(self):
         value = self.value
