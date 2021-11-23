@@ -18,7 +18,7 @@ class Item:
         return self.value in ['+', '-', '*', '/']
 
     def is_keyword(self):
-        return self.value in ['print', 'dup', 'drop', 'swap', 'store' , '!']
+        return self.value in ['print', 'dup', 'drop', 'swap', 'over', 'rot', 'store']
 
     def get_value(self):
         value = self.value
@@ -51,33 +51,34 @@ class Stack:
     def __init__(self, size=16):
         self.size = size
         self.array = [0 for _ in range(self.size)]
-        self.stack_pointer = self.size - 1
+        self.stack_pointer = 0
 
     def push(self, value):
         self.array[self.stack_pointer] = value
-        if self.stack_pointer != 0:
-            self.stack_pointer -= 1
-
-    def pop(self):
         if self.stack_pointer != self.size - 1:
             self.stack_pointer += 1
+
+    def pop(self):
+        if self.stack_pointer != 0:
+            self.stack_pointer -= 1
         value = self.array[self.stack_pointer]
         self.array[self.stack_pointer] = 0
         return value
 
     def duplicate(self):
-        if self.stack_pointer != self.size - 1:
-            self.push(self.array[self.stack_pointer+1])
+        self.push(self.array[self.stack_pointer-1])
 
     def swap(self):
-        if not self.is_empty():
-            temp = self.array[self.stack_pointer+1]
-            self.array[self.stack_pointer+1] = self.array[self.stack_pointer+2]
-            self.array[self.stack_pointer+2] = temp
+        temp = self.array[self.stack_pointer-1]
+        self.array[self.stack_pointer-1] = self.array[self.stack_pointer-2]
+        self.array[self.stack_pointer-2] = temp
+
+    def over(self):
+        self.push(self.array[self.stack_pointer-2])
 
     def clear(self):
         self.array = [0 for _ in range(self.size)]
-        self.stack_pointer = self.size - 1
+        self.stack_pointer = 0
 
     def make_operation(self, operation):
         operands = list(filter(lambda x: isinstance(x, int) and x != 0, self.array))
@@ -138,6 +139,8 @@ def main():
                     stack.swap()
                 elif item.get_value() == 'drop':
                     stack.pop()
+                elif item.get_value() == 'over':
+                    stack.over()
             else:
                 if next_item.get_value() == 'store' or next_item.get_value() == '!':
                     variables[item.get_value()] = stack.pop()
