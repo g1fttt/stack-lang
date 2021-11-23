@@ -18,7 +18,7 @@ class Item:
         return self.value in ['+', '-', '*', '/']
 
     def is_keyword(self):
-        return self.value in ['print', 'dup', 'drop', 'swap']
+        return self.value in ['print', 'dup', 'drop', 'swap', 'store' , '!']
 
     def get_value(self):
         value = self.value
@@ -69,6 +69,12 @@ class Stack:
         if self.stack_pointer != self.size - 1:
             self.push(self.array[self.stack_pointer+1])
 
+    def swap(self):
+        if not self.is_empty():
+            temp = self.array[self.stack_pointer+1]
+            self.array[self.stack_pointer+1] = self.array[self.stack_pointer+2]
+            self.array[self.stack_pointer+2] = temp
+
     def clear(self):
         self.array = [0 for _ in range(self.size)]
         self.stack_pointer = self.size - 1
@@ -104,8 +110,14 @@ def main():
         item = items.next().collect()
 
         stack = Stack()
+        variables = {}
 
         while item != None:
+            next_item = Iter(source, items.get_index()).next(increment=False).collect()
+
+            if next_item is None:
+                next_item = Item('')
+
             if item.is_int() or item.is_bool():
                 stack.push(item.get_value())
             elif item.is_str():
@@ -122,8 +134,15 @@ def main():
                         print(stack.pop())
                 elif item.get_value() == 'dup':
                     stack.duplicate()
+                elif item.get_value() == 'swap':
+                    stack.swap()
                 elif item.get_value() == 'drop':
                     stack.pop()
+            else:
+                if next_item.get_value() == 'store' or next_item.get_value() == '!':
+                    variables[item.get_value()] = stack.pop()
+                else:
+                    stack.push(variables[item.get_value()])
 
             item = items.next().collect()
 
