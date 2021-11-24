@@ -106,14 +106,14 @@ class Stack:
 
     def make_compare(self, operation):
         operands = [self.array[self.stack_pointer-1], self.array[self.stack_pointer-2]]
-        return Item('true').get_value() if reduce({
+        return 'true' if reduce({
             '!=': lambda x, y: x != y,
             '<=': lambda x, y: x <= y,
             '>=': lambda x, y: x >= y,
             '=': lambda x, y: x == y,
             '<': lambda x, y: x < y,
             '>': lambda x, y: x > y,
-        }[operation], operands) else Item('false').get_value()
+        }[operation], operands) else 'false'
 
     def get_size(self):
         return len(list(filter(lambda x: x != 0, self.array)))
