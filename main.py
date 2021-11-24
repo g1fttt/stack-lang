@@ -24,7 +24,6 @@ class Item:
         return self.value in ['print', 'dup', 'drop', 'swap', 'over', 'rot', 'store', 'if', 'end']
 
     def is_str(self):
-        #return not self.is_int() and not self.is_bool() and not self.is_math_operator() and not self.is_compare_operator() and not self.is_keyword()
         return '"' in self.value
 
     def get_value(self):
