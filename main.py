@@ -21,10 +21,11 @@ class Item:
         return self.value in ['!=', '<=', '>=', '=', '<', '>']
 
     def is_keyword(self):
-        return self.value in ['print', 'dup', 'drop', 'swap', 'over', 'rot', 'store', 'while', 'if']
+        return self.value in ['print', 'dup', 'drop', 'swap', 'over', 'rot', 'store', 'if', 'end']
 
     def is_str(self):
-        return not self.is_int() and not self.is_bool() and not self.is_math_operator() and not self.is_compare_operator() and not self.is_keyword()
+        #return not self.is_int() and not self.is_bool() and not self.is_math_operator() and not self.is_compare_operator() and not self.is_keyword()
+        return '"' in self.value
 
     def get_value(self):
         value = self.value
@@ -72,7 +73,8 @@ class Stack:
         return value
 
     def duplicate(self):
-        self.push(self.array[self.stack_pointer-1])
+        if self.get_size() >= 1:
+            self.push(self.array[self.stack_pointer-1])
 
     def swap(self):
         if self.get_size() >= 2:
@@ -81,7 +83,8 @@ class Stack:
             self.array[self.stack_pointer-2] = temp
 
     def over(self):
-        self.push(self.array[self.stack_pointer-2])
+        if self.get_size() >= 2:
+            self.push(self.array[self.stack_pointer-2])
 
     def rotate(self):
         if self.get_size() >= 3:
