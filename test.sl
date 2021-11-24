@@ -1,1 +1,1 @@
-1 2 3 4 over dup * print
+5 5 = if 1337 print end
