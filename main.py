@@ -8,7 +8,7 @@ class Item:
     def is_int(self):
         result = True
         if not isinstance(self.value, int):
-            result = self.value.isnumeric()
+            result = self.value.replace('-', '').isnumeric()
         return result
 
     def is_bool(self):
@@ -17,14 +17,24 @@ class Item:
     def is_math_operator(self):
         return self.value in ['+', '-', '*', '/']
 
+    def is_bitwise_operator(self):
+        return self.value in ['|', '&', '^', '<<', '>>']
+
     def is_compare_operator(self):
         return self.value in ['!=', '<=', '>=', '=', '<', '>']
 
     def is_keyword(self):
-        return self.value in ['print', 'dup', 'drop', 'swap', 'over', 'rot', 'store', 'if', 'end']
+        return self.value in ['print', 'size', 'dup', 'drop', 'swap', 'over', 'rot', 'store', 'if', 'while', 'proc', 'endproc', 'call', 'endif', 'back', 'glob']
 
     def is_str(self):
-        return '"' in self.value
+        result = False
+        for i in range(97, 123): # a-z
+            if chr(i) in self.value:
+                result = True
+        for i in range(65, 91): # A-Z
+            if chr(i) in self.value:
+                result = True
+        return result
 
     def get_value(self):
         value = self.value
@@ -98,10 +108,15 @@ class Stack:
     def make_operation(self, operation):
         operands = list(filter(lambda x: isinstance(x, int) and x != 0, self.array))
         return reduce({
-            '+': lambda x, y: x + y,
-            '-': lambda x, y: x - y,
-            '*': lambda x, y: x * y,
-            '/': lambda x, y: x / y,
+            '+':  lambda x, y: x + y,
+            '-':  lambda x, y: x - y,
+            '*':  lambda x, y: x * y,
+            '/':  lambda x, y: x / y,
+            '|':  lambda x, y: x | y,
+            '&':  lambda x, y: x & y,
+            '^':  lambda x, y: x ^ y,
+            '<<': lambda x, y: x << y,
+            '>>': lambda x, y: x >> y,
         }[operation], operands)
 
     def make_compare(self, operation):
@@ -110,9 +125,9 @@ class Stack:
             '!=': lambda x, y: x != y,
             '<=': lambda x, y: x <= y,
             '>=': lambda x, y: x >= y,
-            '=': lambda x, y: x == y,
-            '<': lambda x, y: x < y,
-            '>': lambda x, y: x > y,
+            '=':  lambda x, y: x == y,
+            '<':  lambda x, y: x < y,
+            '>':  lambda x, y: x > y,
         }[operation], operands) else 'false'
 
     def get_size(self):
@@ -128,26 +143,30 @@ def build_string(array, index):
     items = Iter(array, index)
     item = items.next().collect()
     string = list()
-    while item != None and item.is_str():
+    while item != None and not item.is_keyword() and not item.is_int() and not item.is_bool():
         string.append(item.get_value())
         item = items.next().collect()
     return (string, items.get_index() - 1)
 
-def build_if_block(array, index):
+def build_statement_block(array, index, end_name):
     items = Iter(array, index)
     item = items.next().collect()
-    if_block = list()
-    while item != None and item.get_value() != 'end':
-        if_block.append(item.get_value())
+    statement_block = list()
+    while item != None and item.get_value() != end_name:
+        statement_block.append(item.get_value())
         item = items.next().collect()
-    return (if_block, items.get_index() - 1)
+    return (statement_block, items.get_index() - 1)
 
 STACK = Stack()
 VARIABLES = {}
+PROCEDURES = {}
 
 def parse_code(source):
     items = Iter(source, -1)
     item = items.next().collect()
+    use_global_variables = True
+    return_index = 0
+    variables = {}
 
     while item != None:
         next_item = Iter(source, items.get_index()).next(increment=False).collect()
@@ -157,11 +176,11 @@ def parse_code(source):
          
         if item.is_int() or item.is_bool():
             STACK.push(item.get_value())
-        elif item.is_str():
+        elif item.is_str() and not item.is_keyword():
             string, index = build_string(source, items.get_index() - 1)
             STACK.push(' '.join(string)[1:-1])
             items = Iter(source, index)
-        elif item.is_math_operator():
+        elif item.is_math_operator() or item.is_bitwise_operator():
             result = STACK.make_operation(item.get_value())
             STACK.clear()
             STACK.push(result)
@@ -172,6 +191,8 @@ def parse_code(source):
             if item.get_value() == 'print':
                 if not STACK.is_empty():
                     print(STACK.pop())
+            elif item.get_value() == 'size':
+                STACK.push(STACK.get_size())
             elif item.get_value() == 'dup':
                 STACK.duplicate()
             elif item.get_value() == 'swap':
@@ -183,21 +204,43 @@ def parse_code(source):
             elif item.get_value() == 'rot':
                 STACK.rotate()
             elif item.get_value() == 'if':
-                if_block, index = build_if_block(source, items.get_index())
+                statement_block, index = build_statement_block(source, items.get_index(), 'endif')
                 if STACK.pop() == 'true':
-                    parse_code(if_block)
+                    parse_code(statement_block)
                 items = Iter(source, index)
+            elif item.get_value() == 'while':
+                statement_block, index = build_statement_block(source, items.get_index(), 'endif')
+                while STACK.pop() == 'true':
+                    parse_code(statement_block)
+                items = Iter(source, index)
+            elif item.get_value() == 'proc':
+                statement_block, index = build_statement_block(source, items.get_index() + 1, 'endproc') # +1 cuz skipping procedure name
+                PROCEDURES[next_item.get_value()] = statement_block
+                items = Iter(source, index)
+            elif item.get_value() == 'back':
+                items = Iter(source, return_index)
+            elif item.get_value() == 'glob':
+                use_global_variables = not use_global_variables
         else:
             if next_item.get_value() == 'store':
-                VARIABLES[item.get_value()] = STACK.pop()
+                if use_global_variables:
+                    VARIABLES[item.get_value()] = STACK.pop()
+                else:
+                    variables[item.get_value()] = STACK.pop()
+            elif next_item.get_value() == 'call':
+                parse_code(PROCEDURES[item.get_value()])
+                return_index = items.get_index()
             else:
-                STACK.push(VARIABLES[item.get_value()])
-
+                if use_global_variables:
+                    if item.get_value() in VARIABLES:
+                        STACK.push(VARIABLES[item.get_value()])
+                else:
+                    if item.get_value() in variables:
+                        STACK.push(variables[item.get_value()])
+        
         item = items.next().collect()
 
 if __name__ == '__main__':
-    file = open(sys.argv[1], 'r')
-    source = file.read().split()
-    file.close()
-
+    with open(sys.argv[1], 'r') as file:
+        source = file.read().split()
     parse_code(source)
