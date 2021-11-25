@@ -26,16 +26,6 @@ class Item:
     def is_keyword(self):
         return self.value in ['print', 'size', 'dup', 'drop', 'swap', 'over', 'rot', 'store', 'if', 'while', 'proc', 'endproc', 'call', 'endif', 'back', 'glob']
 
-    def is_str(self):
-        result = False
-        for i in range(97, 123): # a-z
-            if chr(i) in self.value:
-                result = True
-        for i in range(65, 91): # A-Z
-            if chr(i) in self.value:
-                result = True
-        return result
-
     def get_value(self):
         value = self.value
         if self.is_int():
@@ -139,15 +129,6 @@ class Stack:
     def debug(self):
         print(self.array, self.stack_pointer)
 
-def build_string(array, index):
-    items = Iter(array, index)
-    item = items.next().collect()
-    string = list()
-    while item != None and not item.is_keyword() and not item.is_int() and not item.is_bool():
-        string.append(item.get_value())
-        item = items.next().collect()
-    return (string, items.get_index() - 1)
-
 def build_statement_block(array, index, end_name):
     items = Iter(array, index)
     item = items.next().collect()
@@ -176,10 +157,6 @@ def parse_code(source):
          
         if item.is_int() or item.is_bool():
             STACK.push(item.get_value())
-        elif item.is_str() and not item.is_keyword():
-            string, index = build_string(source, items.get_index() - 1)
-            STACK.push(' '.join(string)[1:-1])
-            items = Iter(source, index)
         elif item.is_math_operator() or item.is_bitwise_operator():
             result = STACK.make_operation(item.get_value())
             STACK.clear()
@@ -237,7 +214,7 @@ def parse_code(source):
                 else:
                     if item.get_value() in variables:
                         STACK.push(variables[item.get_value()])
-        
+       
         item = items.next().collect()
 
 if __name__ == '__main__':

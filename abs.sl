@@ -7,5 +7,8 @@ proc abs
     cmp_clear call
     if back endif
     dup dup -
-    print
 endproc
+
+-1337
+abs call
+print
