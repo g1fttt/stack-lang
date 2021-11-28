@@ -134,7 +134,6 @@ VARIABLES = {}
 PROCEDURES = {}
 
 def parse_code(source):
-    variables = {}
     index = 0
 
     while index != len(source):
