@@ -7,7 +7,7 @@ class Word:
 
     def is_int(self):
         result = True
-        if not isinstance(self.value, int):
+        if isinstance(self.value, str):
             result = self.value.replace('-', '').isnumeric()
         return result
 
@@ -28,7 +28,8 @@ class Word:
 
     def compile(self, char):
         if self.value.startswith(char):
-            return Word(self.value[1:])
+            char_index = self.value.find(char)
+            return Word(self.value[char_index+1:])
 
     def get_value(self):
         value = self.value
@@ -95,12 +96,12 @@ class Stack:
     def make_compare(self, operation):
         operands = [self.array[self.stack_pointer-1], self.array[self.stack_pointer-2]]
         return 'true' if reduce({
-            '!=': lambda x, y: x != y,
-            '<=': lambda x, y: x <= y,
-            '>=': lambda x, y: x >= y,
             '=':  lambda x, y: x == y,
             '<':  lambda x, y: x < y,
             '>':  lambda x, y: x > y,
+            '!=': lambda x, y: x != y,
+            '<=': lambda x, y: x <= y,
+            '>=': lambda x, y: x >= y,
         }[operation], operands) else 'false'
 
     def get_size(self):
@@ -166,7 +167,7 @@ def parse_code(source):
             elif word.get_value() == 'rot':
                 STACK.rotate()
             elif word.get_value() == 'proc':
-                procedure, index = build_statement(source, index + 1) # skip 'in' keyword
+                procedure, index = build_statement(source, index + 1)
                 PROCEDURES[previous_word.get_value()] = procedure
             elif word.get_value() == 'if':
                 statement, index = build_statement(source, index + 1)
@@ -185,7 +186,7 @@ def parse_code(source):
             VARIABLES[variable] = STACK.pop()
         elif word.get_value() in VARIABLES:
             STACK.push(VARIABLES[word.get_value()])
-       
+
         index += 1
 
 if __name__ == '__main__':
