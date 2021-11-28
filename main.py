@@ -112,10 +112,6 @@ class Stack:
     def debug(self):
         print(self.array, self.stack_pointer)
 
-STACK = Stack()
-VARIABLES = {}
-PROCEDURES = {}
-
 def build_statement(source, index):
     need_close = []
     statement = []
