@@ -1,12 +1,12 @@
-proc ghoul
-    1000 index store
+ghoul proc in
+    1000 dup @i stdout
 
-    true while
+    true while in
         drop drop
-        index 7 - dup
-        index store print
-        index 0 <=
-    endif
-endproc
+        i 7 - dup
+        stdout @i
+        i 0 <=
+    end
+end
 
-ghoul call
+*ghoul

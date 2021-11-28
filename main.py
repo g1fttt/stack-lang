@@ -1,7 +1,7 @@
 from functools import reduce
 import sys
 
-class Item:
+class Word:
     def __init__(self, value):
         self.value = value
 
@@ -24,34 +24,17 @@ class Item:
         return self.value in ['!=', '<=', '>=', '=', '<', '>']
 
     def is_keyword(self):
-        return self.value in ['print', 'size', 'dup', 'drop', 'swap', 'over', 'rot', 'store', 'if', 'while', 'proc', 'endproc', 'call', 'endif', 'back', 'glob']
+        return self.value in ['stdout', 'size', 'dup', 'drop', 'swap', 'over', 'rot', 'if', 'while', 'proc', 'in', 'end']
+
+    def compile(self, char):
+        if self.value.startswith(char):
+            return Word(self.value[1:])
 
     def get_value(self):
         value = self.value
         if self.is_int():
             value = int(value)
         return value
-
-class Iter:
-    def __init__(self, array, index=0):
-        self.array = array
-        self.index = index
-
-    def next(self, increment=True):
-        result = None
-        if increment:
-            self.index += 1
-            result = Iter(self.array, self.index)
-        else:
-            index = self.index + 1
-            result = Iter(self.array, index)
-        return result
-
-    def collect(self):
-        return Item(self.array[self.index]) if self.index < len(self.array) else None
-
-    def get_index(self):
-        return self.index
 
 class Stack:
     def __init__(self, size=16):
@@ -129,95 +112,92 @@ class Stack:
     def debug(self):
         print(self.array, self.stack_pointer)
 
-def build_statement_block(array, index, end_name):
-    items = Iter(array, index)
-    item = items.next().collect()
-    statement_block = list()
-    while item != None and item.get_value() != end_name:
-        statement_block.append(item.get_value())
-        item = items.next().collect()
-    return (statement_block, items.get_index() - 1)
+STACK = Stack()
+VARIABLES = {}
+PROCEDURES = {}
+
+def build_statement(source, index):
+    need_close = []
+    statement = []
+    while index != len(source):
+        word = Word(source[index])
+        if word.is_keyword():
+            if word.get_value() == 'in':
+                need_close.append(True)
+            elif word.get_value() == 'end':
+                if len(need_close) > 0:
+                    need_close.pop()
+                if len(need_close) == 0:
+                    break
+        statement.append(word.get_value())
+        index += 1
+    return statement[1:], index
 
 STACK = Stack()
 VARIABLES = {}
 PROCEDURES = {}
 
 def parse_code(source):
-    items = Iter(source, -1)
-    item = items.next().collect()
-    use_global_variables = True
-    return_index = 0
     variables = {}
+    index = 0
 
-    while item != None:
-        next_item = Iter(source, items.get_index()).next(increment=False).collect()
+    while index != len(source):
+        previous_word = Word(source[index-1 if index != 0 else 0])
+        word = Word(source[index])
 
-        if next_item is None:
-            next_item = Item('')
-         
-        if item.is_int() or item.is_bool():
-            STACK.push(item.get_value())
-        elif item.is_math_operator() or item.is_bitwise_operator():
-            result = STACK.make_operation(item.get_value())
+        if word.is_int() or word.is_bool():
+            STACK.push(word.get_value())
+        elif word.is_math_operator() or word.is_bitwise_operator():
+            result = STACK.make_operation(word.get_value())
             STACK.clear()
             STACK.push(result)
-        elif item.is_compare_operator():
-            result = STACK.make_compare(item.get_value())
+        elif word.is_compare_operator():
+            result = STACK.make_compare(word.get_value())
             STACK.push(result)
-        elif item.is_keyword():
-            if item.get_value() == 'print':
+        elif word.is_keyword():
+            if word.get_value() == 'stdout':
                 if not STACK.is_empty():
                     print(STACK.pop())
-            elif item.get_value() == 'size':
+            elif word.get_value() == 'size':
                 STACK.push(STACK.get_size())
-            elif item.get_value() == 'dup':
+            elif word.get_value() == 'dup':
                 STACK.duplicate()
-            elif item.get_value() == 'swap':
+            elif word.get_value() == 'swap':
                 STACK.swap()
-            elif item.get_value() == 'drop':
+            elif word.get_value() == 'drop':
                 STACK.pop()
-            elif item.get_value() == 'over':
+            elif word.get_value() == 'over':
                 STACK.over()
-            elif item.get_value() == 'rot':
+            elif word.get_value() == 'rot':
                 STACK.rotate()
-            elif item.get_value() == 'if':
-                statement_block, index = build_statement_block(source, items.get_index(), 'endif')
+            elif word.get_value() == 'proc':
+                procedure, index = build_statement(source, index + 1) # skip 'in' keyword
+                PROCEDURES[previous_word.get_value()] = procedure
+            elif word.get_value() == 'if':
+                statement, index = build_statement(source, index + 1)
                 if STACK.pop() == 'true':
-                    parse_code(statement_block)
-                items = Iter(source, index)
-            elif item.get_value() == 'while':
-                statement_block, index = build_statement_block(source, items.get_index(), 'endif')
+                    parse_code(statement)
+            elif word.get_value() == 'while':
+                statement, index = build_statement(source, index + 1)
                 while STACK.pop() == 'true':
-                    parse_code(statement_block)
-                items = Iter(source, index)
-            elif item.get_value() == 'proc':
-                statement_block, index = build_statement_block(source, items.get_index() + 1, 'endproc') # +1 cuz skipping procedure name
-                PROCEDURES[next_item.get_value()] = statement_block
-                items = Iter(source, index)
-            elif item.get_value() == 'back':
-                items = Iter(source, return_index)
-            elif item.get_value() == 'glob':
-                use_global_variables = not use_global_variables
-        else:
-            if next_item.get_value() == 'store':
-                if use_global_variables:
-                    VARIABLES[item.get_value()] = STACK.pop()
-                else:
-                    variables[item.get_value()] = STACK.pop()
-            elif next_item.get_value() == 'call':
-                parse_code(PROCEDURES[item.get_value()])
-                return_index = items.get_index()
-            else:
-                if use_global_variables:
-                    if item.get_value() in VARIABLES:
-                        STACK.push(VARIABLES[item.get_value()])
-                else:
-                    if item.get_value() in variables:
-                        STACK.push(variables[item.get_value()])
+                    parse_code(statement)
+        elif word.get_value().startswith('*'): # procedure call
+            procedure = word.compile('*').get_value()
+            if procedure in PROCEDURES:
+                parse_code(PROCEDURES[procedure])
+        elif word.get_value().startswith('@'): # variable store
+            variable = word.compile('@').get_value()
+            VARIABLES[variable] = STACK.pop()
+        elif word.get_value() in VARIABLES:
+            STACK.push(VARIABLES[word.get_value()])
        
-        item = items.next().collect()
+        index += 1
 
 if __name__ == '__main__':
-    with open(sys.argv[1], 'r') as file:
-        source = file.read().split()
-    parse_code(source)
+    if len(sys.argv) == 2:
+        with open(sys.argv[1], 'r') as file:
+            source = file.read().split()
+        parse_code(source)
+    else:
+        source = input('-> ')
+        parse_code(source)

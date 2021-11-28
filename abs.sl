@@ -1,14 +1,13 @@
-proc cmp_clear
+cmp_clear proc in
     swap drop swap drop
-endproc
+end
 
-proc abs
-    size 1 <
-    cmp_clear call
-    if back endif
-    dup dup -
-endproc
+abs proc in
+    size 1 >=
+    *cmp_clear
+    if in
+        dup dup -
+    end
+end
 
--1337
-abs call
-print
+-1337 *abs stdout
