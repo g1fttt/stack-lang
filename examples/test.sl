@@ -1,1 +1,1 @@
-100 @index index stdout
+1337 !n ?n

@@ -1,12 +1,11 @@
-ghoul proc in
-    1000 dup @i stdout
+ghoul proc begin
+    1000 dup !i stdout
 
-    true while in
-        drop drop
+    true while begin
         i 7 - dup
-        stdout @i
-        i 0 <=
+        !i stdout
+        i 0 >=
     end
 end
 
-*ghoul
+ghoul

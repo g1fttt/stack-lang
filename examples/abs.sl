@@ -1,13 +1,7 @@
-cmp_clear proc in
-    swap drop swap drop
-end
-
-abs proc in
-    size 1 >=
-    *cmp_clear
-    if in
+abs proc begin
+    size 1 >= if begin
         dup dup -
     end
 end
 
--1337 *abs stdout
+-1337 abs stdout
