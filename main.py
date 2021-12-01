@@ -41,21 +41,21 @@ class Stack: # TODO: alloc mechanism
         return value
 
     def duplicate(self):
-        if self.get_size().get_value() >= 1:
+        if self.get_size() >= 1:
             self.push(self.array[self.stack_pointer-1])
 
     def swap(self):
-        if self.get_size().get_value() >= 2:
+        if self.get_size() >= 2:
             temp = self.array[self.stack_pointer-1]
             self.array[self.stack_pointer-1] = self.array[self.stack_pointer-2]
             self.array[self.stack_pointer-2] = temp
 
     def over(self):
-        if self.get_size().get_value() >= 2:
+        if self.get_size() >= 2:
             self.push(self.array[self.stack_pointer-2])
 
     def rotate(self):
-        if self.get_size().get_value() >= 3:
+        if self.get_size() >= 3:
             temp = self.array[self.stack_pointer-1]
             self.array[self.stack_pointer-1] = self.array[self.stack_pointer-3]
             self.array[self.stack_pointer-3] = temp
@@ -101,7 +101,7 @@ class Stack: # TODO: alloc mechanism
         }[operation], [b, a]))
 
     def get_size(self):
-        return Int(len(list(filter(lambda x: x != 0, self.array))))
+        return len(list(filter(lambda x: x != 0, self.array)))
 
 BITWISE_OPERATOR = 'BITWISE_OPERATOR'
 COMPARE_OPERATOR = 'COMPARE_OPERATOR'
@@ -223,11 +223,11 @@ def parse_code(source):
             elif special_symbol == '?':
                 del VARIABLES[variable_name]
         elif tag == RESERVED:
-            if item == 'stdout' and not STACK.get_size().get_value() == 0:
+            if item == 'stdout' and not STACK.get_size() == 0:
                 number = STACK.pop()
                 print(number.get_value())
             elif item == 'size':
-                STACK.push(STACK.get_size())
+                STACK.push(Int(STACK.get_size()))
             elif item == 'dup':
                 STACK.duplicate()
             elif item == 'swap':
